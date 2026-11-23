@@ -388,6 +388,10 @@ if (sb) {
    : await sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: location.origin + location.pathname } });
   $("b-enviar").disabled = false;
   if (r.error) return msg("dlg-msg", errTxt(r.error));
+  if (modo === "registro" && r.data.user && (r.data.user.identities || []).length === 0) {
+   modo = "entrar"; vista();
+   return msg("dlg-msg", "Ya existe una cuenta con ese correo. Entra con tu contraseña.");
+  }
   if (modo === "registro" && !r.data.session) return msg("dlg-msg", "Cuenta creada. Te hemos enviado un correo para confirmarla; después entra aquí.", true);
   $("pass").value = ""; cerrar();
  });
