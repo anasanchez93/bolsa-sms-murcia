@@ -71,6 +71,26 @@ ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
 .info dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:10px 0 0}.info dt{font-weight:600;color:var(--ink)}.info dd{margin:0}
 #instalar{display:none;font:inherit;font-weight:700;background:var(--gold);color:#1d1416;border:0;border-radius:12px;padding:10px 16px;min-height:44px;cursor:pointer;margin-top:14px}
 .aviso{font-size:13px}
+.cuenta{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:-8px 0 10px;font-size:14px;flex-wrap:wrap}
+.cuenta span{opacity:.85;overflow-wrap:anywhere}
+.b-claro{font:inherit;font-weight:700;font-size:14px;background:#fff;color:var(--crim);border:0;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer}
+.sync{font-size:13px;margin-top:6px;opacity:.85;min-height:20px}
+.sync button{all:unset;text-decoration:underline;cursor:pointer;font-weight:600}
+dialog{border:0;border-radius:18px;padding:0;width:min(440px,calc(100vw - 32px));background:var(--card);color:var(--ink);box-shadow:0 20px 60px rgba(0,0,0,.35)}
+dialog::backdrop{background:rgba(29,20,22,.55)}
+dialog form{padding:24px;position:relative;display:grid;gap:12px}
+dialog h2{margin:0;font-size:22px}
+.tabs{display:flex;gap:8px}
+.nota{margin:0;color:var(--muted);font-size:15px}
+.campo{display:grid;gap:6px;font-weight:600;font-size:14px}
+.campo input{font:inherit;font-size:16px;font-weight:400;padding:12px 14px;border-radius:12px;border:1.5px solid var(--line);background:var(--bg);color:var(--ink);min-height:48px}
+.campo input:focus-visible{outline:3px solid var(--gold);outline-offset:1px}
+.msg{margin:0;font-size:14px;min-height:20px;color:var(--crim2)}.msg.ok{color:var(--ok)}
+.acciones{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.b-prim{font:inherit;font-weight:700;background:var(--crim);color:#fff;border:0;border-radius:12px;padding:12px 20px;min-height:48px;cursor:pointer}
+.b-prim:disabled{opacity:.6}
+.b-link{all:unset;cursor:pointer;color:var(--crim2);text-decoration:underline;font-size:14px;padding:8px 0}
+.cerrar{position:absolute;top:10px;right:12px;font-size:28px;line-height:1;background:none;border:0;color:var(--muted);width:44px;height:44px;cursor:pointer}
 @media(max-width:600px){.mandos{grid-template-columns:1fr}.item{grid-template-columns:1fr}.estado{text-align:left;justify-self:start}.fila b{width:auto}}
 @media(prefers-reduced-motion:no-preference){.escala i{transition:width .5s ease}}
 </style>
@@ -78,12 +98,14 @@ ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
 <body>
 <header>
  <div class="wrap">
+  <div class="cuenta"><span id="quien"></span><button type="button" id="b-cuenta" class="b-claro">Entrar</button></div>
   <h1>¿Me toca en la bolsa del SMS?</h1>
   <p>Escribe tu puntuación y compárala con la del último llamamiento en cada área de salud y ámbito.</p>
   <div class="mandos">
    <div>
     <label class="lab" for="mis">Tus puntos en la bolsa</label>
     <div class="puntos"><input id="mis" inputmode="decimal" autocomplete="off" placeholder="0,000" aria-describedby="ayuda-puntos"><span>pts</span></div>
+    <div id="sync" class="sync"></div>
    </div>
    <div>
     <label class="lab" for="cat">Bolsa</label>
@@ -93,6 +115,32 @@ ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
   <button id="instalar" type="button">Instalar la app</button>
  </div>
 </header>
+
+<dialog id="dlg" aria-labelledby="dlg-t">
+ <form id="f-auth" novalidate>
+  <h2 id="dlg-t">Tu cuenta</h2>
+  <div id="v-fuera">
+   <div class="tabs" role="tablist"><button type="button" class="chip" data-modo="entrar" aria-pressed="true">Entrar</button><button type="button" class="chip" data-modo="registro" aria-pressed="false">Crear cuenta</button></div>
+   <p class="nota" id="dlg-nota">Guarda tus puntos de cada bolsa (general y especialidades) y los tendrás en cualquier móvil u ordenador.</p>
+   <label class="campo">Correo<input id="email" type="email" autocomplete="email" required></label>
+   <label class="campo" id="c-pass">Contraseña<input id="pass" type="password" autocomplete="current-password" minlength="8" required></label>
+   <p class="msg" id="dlg-msg" role="alert"></p>
+   <div class="acciones"><button type="submit" class="b-prim" id="b-enviar">Entrar</button><button type="button" class="b-link" id="b-olvido">He olvidado la contraseña</button></div>
+  </div>
+  <div id="v-dentro" hidden>
+   <p>Has entrado como <strong id="dlg-email"></strong>. Tus puntos se guardan solos cada vez que los cambias.</p>
+   <p class="msg" id="dlg-msg2" role="alert"></p>
+   <div class="acciones"><button type="button" class="b-prim" id="b-salir">Salir</button><button type="button" class="b-link" id="b-borrar">Borrar mis puntos guardados</button></div>
+  </div>
+  <div id="v-nueva" hidden>
+   <p>Escribe tu nueva contraseña.</p>
+   <label class="campo">Nueva contraseña<input id="pass2" type="password" autocomplete="new-password" minlength="8"></label>
+   <p class="msg" id="dlg-msg3" role="alert"></p>
+   <div class="acciones"><button type="button" class="b-prim" id="b-nueva">Guardar contraseña</button></div>
+  </div>
+  <button type="button" class="cerrar" id="b-cerrar" aria-label="Cerrar">×</button>
+ </form>
+</dialog>
 
 <section class="resumen" aria-live="polite"><div class="wrap" id="resumen"><p>Cargando llamamientos…</p></div></section>
 
@@ -121,6 +169,7 @@ ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
  <p id="estado" class="aviso"></p>
 </div></section>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.119.0/dist/umd/supabase.js"></script>
 <script>
 {
 const API = "https://amjwtkrhwhkkgfmvbpsv.supabase.co/rest/v1/rpc/";
@@ -145,14 +194,19 @@ const fecha = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("es-ES", {
 const dias = (s) => s ? Math.round((Date.now() - new Date(s + "T12:00:00")) / 864e5) : null;
 const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 
-let S = { cat: store.get("cat", CATS[0][0]), mis: store.get("mis", ""), nom: store.get("nom", "nombramientos temporales"),
+// Puntos por bolsa: { "Enfermería": "112,5", ... } (texto tal como lo escribe la persona)
+const ptsIni = store.get("pts", null) ?? (store.get("mis", "") ? { [CATS[0][0]]: store.get("mis", "") } : {});
+let S = { cat: store.get("cat", CATS[0][0]), pts: ptsIni, nom: store.get("nom", "nombramientos temporales"),
           areas: store.get("areas", []), ambs: store.get("ambs", []), orden: store.get("orden", "cerca"), filas: [] };
+Object.defineProperty(S, "mis", { get() { return S.pts[S.cat] ?? ""; } });
 
 $("cat").innerHTML = CATS.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("");
 $("cat").value = S.cat; $("mis").value = S.mis; $("orden").value = S.orden;
+const aNum = (txt) => { const v = parseFloat(String(txt).replace(/\./g, "").replace(",", ".")); return isFinite(v) && v > 0 ? v : null; };
+const aTxt = (n) => n == null ? "" : String(Number(n)).replace(".", ",");
 $("areas").innerHTML = Object.entries(AREAS).map(([n, t]) => `<dt>Área ${ROM[n]}</dt><dd>${t}</dd>`).join("");
 
-const misPuntos = () => { const v = parseFloat(String(S.mis).replace(/\./g, "").replace(",", ".")); return isFinite(v) && v > 0 ? v : null; };
+const misPuntos = () => aNum(S.mis);
 
 async function rpc(fn, body) {
  const r = await fetch(API + fn, { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
@@ -241,9 +295,112 @@ function pintar() {
  $("estado").textContent = act ? `Datos del SMS actualizados a ${fecha(act)}.` : "";
 }
 
+// ---------- Cuenta (Supabase Auth) ----------
+const sb = window.supabase ? window.supabase.createClient(API.replace("/rest/v1/rpc/", ""), KEY) : null;
+let usuario = null, tGuardar;
+const msg = (id, t, ok) => { const el = $(id); el.textContent = t || ""; el.classList.toggle("ok", !!ok); };
+const ERR = { "Invalid login credentials": "Correo o contraseña incorrectos.", "User already registered": "Ya existe una cuenta con ese correo. Entra con tu contraseña.",
+ "Email not confirmed": "Tienes que confirmar el correo: revisa tu bandeja de entrada (y spam).", "Password should be at least 8 characters.": "La contraseña debe tener al menos 8 caracteres." };
+const errTxt = (e) => ERR[e?.message] || (/rate limit/i.test(e?.message || "") ? "Demasiados intentos. Espera unos minutos." : "No se ha podido completar. Inténtalo de nuevo.");
+
+function pintarSync() {
+ const s = $("sync");
+ if (!sb) { s.textContent = "Guardado en este dispositivo."; return; }
+ s.innerHTML = usuario ? (S.mis ? "✓ Guardado en tu cuenta" : "Escribe tus puntos de esta bolsa y se guardan solos")
+  : (S.mis ? 'Solo en este dispositivo · <button type="button" id="b-sync">Entra para guardarlo</button>' : "");
+ const b = $("b-sync"); if (b) b.onclick = abrir;
+ $("quien").textContent = usuario ? usuario.email : "";
+ $("b-cuenta").textContent = usuario ? "Mi cuenta" : "Entrar";
+}
+
+async function traerPuntos() {
+ const { data, error } = await sb.rpc("bolsa_sms_mis_puntos");
+ if (error) return;
+ const servidor = Object.fromEntries((data || []).map((r) => [r.categoria, aTxt(r.puntos)]));
+ // Lo que solo esté en este dispositivo se sube; lo de la cuenta manda
+ for (const [c, v] of Object.entries(S.pts)) if (!(c in servidor) && aNum(v) != null) { servidor[c] = v; sb.rpc("bolsa_sms_guardar_puntos", { p_categoria: c, p_puntos: aNum(v) }).then(() => {}); }
+ S.pts = servidor; store.set("pts", S.pts);
+ $("mis").value = S.mis; pintarSync(); pintar();
+}
+
+function guardarPuntos(cat) {
+ store.set("pts", S.pts); pintarSync();
+ if (!usuario) return;
+ clearTimeout(tGuardar);
+ tGuardar = setTimeout(async () => {
+  const { error } = await sb.rpc("bolsa_sms_guardar_puntos", { p_categoria: cat, p_puntos: aNum(S.pts[cat]) });
+  $("sync").textContent = error ? "No se ha podido guardar en tu cuenta; se queda en este dispositivo." : "✓ Guardado en tu cuenta";
+ }, 700);
+}
+
+let modo = "entrar";
+function vista() {
+ const recup = $("dlg").dataset.recup === "1";
+ $("v-nueva").hidden = !recup; $("v-dentro").hidden = recup || !usuario; $("v-fuera").hidden = recup || !!usuario;
+ $("dlg-email").textContent = usuario?.email || "";
+ for (const b of document.querySelectorAll("[data-modo]")) b.setAttribute("aria-pressed", b.dataset.modo === modo);
+ $("b-enviar").textContent = modo === "entrar" ? "Entrar" : "Crear cuenta";
+ $("pass").autocomplete = modo === "entrar" ? "current-password" : "new-password";
+ $("b-olvido").hidden = modo !== "entrar";
+}
+function abrir() { msg("dlg-msg", ""); msg("dlg-msg2", ""); vista(); try { $("dlg").showModal(); } catch { $("dlg").setAttribute("open", ""); } }
+const cerrar = () => { $("dlg").dataset.recup = ""; $("dlg").close?.(); $("dlg").removeAttribute("open"); };
+
+if (sb) {
+ $("b-cuenta").onclick = abrir; $("b-cerrar").onclick = cerrar;
+ for (const b of document.querySelectorAll("[data-modo]")) b.onclick = () => { modo = b.dataset.modo; msg("dlg-msg", ""); vista(); };
+ $("f-auth").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const email = $("email").value.trim(), pass = $("pass").value;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return msg("dlg-msg", "Escribe un correo válido.");
+  if (pass.length < 8) return msg("dlg-msg", "La contraseña debe tener al menos 8 caracteres.");
+  $("b-enviar").disabled = true; msg("dlg-msg", "");
+  const r = modo === "entrar" ? await sb.auth.signInWithPassword({ email, password: pass })
+   : await sb.auth.signUp({ email, password: pass, options: { emailRedirectTo: location.origin + location.pathname } });
+  $("b-enviar").disabled = false;
+  if (r.error) return msg("dlg-msg", errTxt(r.error));
+  if (modo === "registro" && !r.data.session) return msg("dlg-msg", "Cuenta creada. Te hemos enviado un correo para confirmarla; después entra aquí.", true);
+  $("pass").value = ""; cerrar();
+ });
+ $("b-olvido").onclick = async () => {
+  const email = $("email").value.trim();
+  if (!/^\S+@\S+\.\S+$/.test(email)) return msg("dlg-msg", "Escribe tu correo y vuelve a pulsar.");
+  const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+  msg("dlg-msg", error ? errTxt(error) : "Si existe una cuenta con ese correo, te llegará un enlace para cambiar la contraseña.", !error);
+ };
+ $("b-nueva").onclick = async () => {
+  const p = $("pass2").value;
+  if (p.length < 8) return msg("dlg-msg3", "Al menos 8 caracteres.");
+  const { error } = await sb.auth.updateUser({ password: p });
+  if (error) return msg("dlg-msg3", errTxt(error));
+  $("dlg").dataset.recup = ""; msg("dlg-msg2", "Contraseña cambiada.", true); vista();
+ };
+ $("b-salir").onclick = async () => { await sb.auth.signOut(); cerrar(); };
+ $("b-borrar").onclick = async () => {
+  if ($("b-borrar").dataset.ok !== "1") { $("b-borrar").dataset.ok = "1"; $("b-borrar").textContent = "Pulsa otra vez para confirmar"; return; }
+  const { error } = await sb.rpc("bolsa_sms_borrar_mis_datos");
+  $("b-borrar").dataset.ok = ""; $("b-borrar").textContent = "Borrar mis puntos guardados";
+  if (error) return msg("dlg-msg2", errTxt(error));
+  S.pts = {}; store.set("pts", {}); $("mis").value = ""; pintar(); pintarSync();
+  msg("dlg-msg2", "Tus puntos se han borrado de la cuenta y de este dispositivo.", true);
+ };
+ sb.auth.onAuthStateChange((ev, session) => {
+  const antes = usuario?.id;
+  usuario = session?.user || null;
+  if (ev === "PASSWORD_RECOVERY") { $("dlg").dataset.recup = "1"; abrir(); }
+  if (usuario && usuario.id !== antes) setTimeout(traerPuntos, 0);
+  pintarSync(); if ($("dlg").open) vista();
+ });
+} else { $("b-cuenta").hidden = true; }
+pintarSync();
+
 let t;
-$("mis").addEventListener("input", (e) => { S.mis = e.target.value.replace(/[^\d.,]/g, ""); e.target.value = S.mis; store.set("mis", S.mis); clearTimeout(t); t = setTimeout(pintar, 150); });
-$("cat").addEventListener("change", (e) => { S.cat = e.target.value; store.set("cat", S.cat); S.areas = []; S.ambs = []; store.set("areas", []); store.set("ambs", []); cargar(); });
+$("mis").addEventListener("input", (e) => {
+ const v = e.target.value.replace(/[^\d.,]/g, ""); e.target.value = v;
+ if (v) S.pts[S.cat] = v; else delete S.pts[S.cat];
+ guardarPuntos(S.cat); clearTimeout(t); t = setTimeout(pintar, 150);
+});
+$("cat").addEventListener("change", (e) => { S.cat = e.target.value; store.set("cat", S.cat); $("mis").value = S.mis; pintarSync(); S.areas = []; S.ambs = []; store.set("areas", []); store.set("ambs", []); cargar(); });
 $("orden").addEventListener("change", (e) => { S.orden = e.target.value; store.set("orden", S.orden); pintar(); });
 
 let aviso;
