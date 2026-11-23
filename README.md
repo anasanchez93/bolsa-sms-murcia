@@ -1,4 +1,4 @@
-# ¿Me toca en la bolsa del SMS?
+# Bolsa SMS Murcia
 
 Web instalable que compara tu puntuación con la del último llamamiento de la Bolsa de Trabajo del Servicio Murciano de Salud, por tipo de contrato, área de salud y ámbito.
 
