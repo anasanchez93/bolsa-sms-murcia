@@ -1,5 +1,5 @@
 // Guarda la app para abrirla sin conexión; los datos siempre se piden a la red primero.
-const CACHE = "bolsa-sms-v5";
+const CACHE = "bolsa-sms-v6";
 const SHELL = ["./", "index.html", "manifest.webmanifest", "icon-192.png", "icon-512.png", "icon-180.png"];
 
 self.addEventListener("install", (e) => {

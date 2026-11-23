@@ -27,7 +27,9 @@
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,sans-serif;overflow-x:clip}
 a{color:var(--crim2)}
 .wrap{max-width:1040px;margin:0 auto;padding-inline:max(4vw,16px)}
-header{background:var(--crim);color:#fff;padding:calc(env(safe-area-inset-top) + 22px) 0 26px}
+header{position:relative;background:radial-gradient(120% 90% at 85% 0%,#b02a3d 0%,#8f1d2c 55%,#7a1725 100%);color:#fff;padding:calc(env(safe-area-inset-top) + 18px) 0 104px;overflow:hidden}
+header .wrap{position:relative;z-index:1}
+.paisaje{position:absolute;left:0;right:0;bottom:0;width:100%;height:110px;pointer-events:none}
 header h1{font-size:clamp(26px,5vw,40px);line-height:1.05;margin:0 0 6px;font-weight:800;text-wrap:balance}
 header p{margin:0 0 20px;opacity:.85;max-width:60ch}
 .mandos{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:end}
@@ -59,7 +61,7 @@ select option{color:#1d1416}
 .barra{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:12px;color:var(--muted);font-size:14px;flex-wrap:wrap}
 .barra select{background:var(--card);color:var(--ink);border:1.5px solid var(--line);width:auto;min-height:40px;padding:8px 12px}
 ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
-.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px}
+.item{background:var(--card);border:1px solid var(--line);border-left:5px solid var(--line);border-radius:14px;box-shadow:0 1px 2px rgba(60,20,25,.05);padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px}
 .item h3{margin:0;font-size:17px;line-height:1.25}
 .item .sub{color:var(--muted);font-size:14px}
 .estado{align-self:start;text-align:right;font-weight:800;font-size:15px;border-radius:10px;padding:6px 10px;white-space:nowrap}
@@ -79,7 +81,10 @@ ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
 #instalar{display:none;font:inherit;font-weight:700;background:var(--gold);color:#1d1416;border:0;border-radius:12px;padding:10px 16px;min-height:44px;cursor:pointer;margin-top:14px}
 .aviso{font-size:13px}
 .cuenta{display:flex;justify-content:flex-end;align-items:center;gap:10px;margin:-8px 0 10px;font-size:14px;flex-wrap:wrap}
-.cuenta span{opacity:.85;overflow-wrap:anywhere}
+.cuenta #quien{opacity:.85;overflow-wrap:anywhere}
+.marca{display:flex;align-items:center;gap:10px;margin-right:auto;font-weight:800;font-size:18px;line-height:1.1}
+.marca svg{width:42px;height:42px;flex:none;filter:drop-shadow(0 2px 6px rgba(0,0,0,.25))}
+.marca small{display:block;font-weight:600;font-size:12px;opacity:.8}
 .b-claro{font:inherit;font-weight:700;font-size:14px;background:#fff;color:var(--crim);border:0;border-radius:999px;padding:8px 16px;min-height:40px;cursor:pointer}
 .sync{font-size:13px;margin-top:6px;opacity:.85;min-height:20px}
 .sync button{all:unset;text-decoration:underline;cursor:pointer;font-weight:600}
@@ -108,6 +113,9 @@ dialog h2{margin:0;font-size:22px}
 .spark polyline{fill:none;stroke:var(--crim2);stroke-width:2;vector-effect:non-scaling-stroke}
 .spark line{stroke:var(--ok);stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
 .spark circle{fill:var(--crim2)}
+.item:has(.dentro){border-left-color:var(--ok)}.item:has(.fuera){border-left-color:var(--crim2)}
+.resumen{background:linear-gradient(180deg,var(--card),var(--bg))}
+.big{display:inline-block;background:var(--crim2);color:light-dark(#fff,#141011);border-radius:12px;padding:2px 12px}
 @media(max-width:600px){.mandos{grid-template-columns:1fr}.item{grid-template-columns:1fr}.estado{text-align:left;justify-self:start}.fila b{width:auto}}
 @media(prefers-reduced-motion:no-preference){.escala i{transition:width .5s ease}}
 </style>
@@ -115,8 +123,8 @@ dialog h2{margin:0;font-size:22px}
 <body>
 <header>
  <div class="wrap">
-  <div class="cuenta"><span id="quien"></span><button type="button" id="b-cuenta" class="b-claro">Entrar</button></div>
-  <h1>¿Me toca en la bolsa del SMS?</h1>
+  <div class="cuenta"><div class="marca"><svg viewBox="0 0 64 64" aria-hidden="true"><rect width="64" height="64" rx="16" fill="#fff"/><circle cx="44" cy="20" r="9" fill="#f5c84c"/><path d="M8 50c8-4 16-4 24 0s16 4 24 0v6H8z" fill="#2f8fb3"/><path d="M27 52c1-9 1-18-2-27" stroke="#5a3a1e" stroke-width="3" fill="none" stroke-linecap="round"/><g fill="#2c7a4b"><path d="M25 24c-6-5-13-4-16 0 6-2 11-1 16 0z"/><path d="M25 24c-2-7-8-10-13-9 5 2 9 5 13 9z"/><path d="M25 24c4-6 10-7 14-5-5 0-10 2-14 5z"/><path d="M25 24c6-3 12-1 14 3-5-2-9-3-14-3z"/></g><path d="M45 34h4v-4h4v4h4v4h-4v4h-4v-4h-4z" fill="#8f1d2c"/></svg><span>¿Me toca?<small>Bolsa del SMS · Región de Murcia</small></span></div><span id="quien"></span><button type="button" id="b-cuenta" class="b-claro">Entrar</button></div>
+  <h1>Tu sitio en la bolsa del SMS</h1>
   <p>Escribe tu puntuación y compárala con la del último llamamiento en cada área de salud y ámbito.</p>
   <div class="mandos">
    <div>
@@ -131,6 +139,20 @@ dialog h2{margin:0;font-size:22px}
   </div>
   <button id="instalar" type="button">Instalar la app</button>
  </div>
+ <svg class="paisaje" viewBox="0 0 1200 110" preserveAspectRatio="xMaxYMax slice" aria-hidden="true">
+  <path d="M0 70 L120 38 L210 60 L330 22 L450 58 L560 30 L700 62 L820 26 L960 56 L1080 34 L1200 54 V110 H0Z" fill="#7a1725"/>
+  <path d="M0 86 C150 66 260 92 420 78 S700 62 860 82 S1080 92 1200 74 V110 H0Z" fill="#6a1220"/>
+  <g fill="#5a0f1b">
+   <path d="M150 92c2-18 2-34-3-48" stroke="#5a0f1b" stroke-width="5" fill="none"/>
+   <path d="M147 44c-12-9-26-8-32 0 12-4 21-2 32 0zM147 44c-4-13-15-19-25-17 10 3 17 9 25 17zM147 44c8-11 19-13 27-9-10 0-19 4-27 9zM147 44c12-6 23-2 27 6-10-4-17-6-27-6z"/>
+   <path d="M1010 94c1-15 1-28-3-40" stroke="#5a0f1b" stroke-width="4.5" fill="none"/>
+   <path d="M1007 54c-10-8-22-7-27 0 10-3 18-2 27 0zM1007 54c-3-11-13-16-21-14 8 2 14 7 21 14zM1007 54c7-9 16-11 23-8-8 0-16 3-23 8zM1007 54c10-5 20-2 23 5-8-3-15-5-23-5z"/>
+   <path d="M1060 96c1-12 1-22-2-31" stroke="#5a0f1b" stroke-width="4" fill="none"/>
+   <path d="M1058 65c-8-6-17-5-21 0 8-2 14-1 21 0zM1058 65c-2-9-10-12-16-11 6 2 11 5 16 11zM1058 65c5-7 12-8 18-6-6 0-12 2-18 6zM1058 65c8-4 15-1 18 4-6-2-12-4-18-4z"/>
+  </g>
+  <path d="M0 100 C200 92 320 106 520 98 S860 90 1200 100 V110 H0Z" fill="#2f8fb3" opacity=".55"/>
+  <circle cx="1120" cy="22" r="16" fill="#f5c84c" opacity=".9"/>
+ </svg>
 </header>
 
 <dialog id="dlg" aria-labelledby="dlg-t">
