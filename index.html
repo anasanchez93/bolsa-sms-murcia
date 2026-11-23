@@ -43,7 +43,14 @@ select option{color:#1d1416}
 .resumen .wrap{padding-block:18px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline}
 .big{font-size:28px;font-weight:800;color:var(--crim2)}
 .resumen p{margin:0;max-width:70ch}
-.filtros{padding-block:18px 6px;display:grid;gap:12px}
+.filtros{margin-top:10px;padding:16px;display:grid;gap:12px;background:var(--card);border:1px solid var(--line);border-radius:14px}
+.filtros[hidden]{display:none}
+.barra-f{display:flex;align-items:center;gap:12px;padding-top:18px;flex-wrap:wrap}
+.b-filtros{font:inherit;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:8px;background:var(--card);color:var(--ink);border:1.5px solid var(--line);border-radius:999px;padding:9px 16px;min-height:44px;cursor:pointer}
+.b-filtros[aria-expanded=true]{border-color:var(--crim2)}
+.b-filtros span:not(:empty){background:var(--crim2);color:light-dark(#fff,#141011);border-radius:99px;font-size:13px;padding:1px 8px}
+.resumen-f{color:var(--muted);font-size:14px}
+.fila{flex-wrap:wrap;overflow:visible}.fila b{width:100% !important}
 .fila{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
 .fila b{flex:none;font-size:13px;color:var(--muted);align-self:center;width:72px}
 .chip{flex:none;font:inherit;font-size:14px;font-weight:600;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;min-height:40px;cursor:pointer}
@@ -145,10 +152,15 @@ dialog h2{margin:0;font-size:22px}
 <section class="resumen" aria-live="polite"><div class="wrap" id="resumen"><p>Cargando llamamientos…</p></div></section>
 
 <main class="wrap">
- <div class="filtros">
+ <div class="barra-f">
+  <button type="button" id="b-filtros" class="b-filtros" aria-expanded="false" aria-controls="panel-f">Filtros<span id="n-filtros"></span></button>
+  <div id="resumen-f" class="resumen-f"></div>
+ </div>
+ <div class="filtros" id="panel-f" hidden>
   <div class="fila" id="f-nom" role="group" aria-label="Tipo de nombramiento"><b>Contrato</b></div>
   <div class="fila" id="f-area" role="group" aria-label="Área de salud"><b>Área</b></div>
   <div class="fila" id="f-amb" role="group" aria-label="Ámbito"><b>Ámbito</b></div>
+  <div class="acciones"><button type="button" class="b-prim" id="b-aplicar">Ver resultados</button><button type="button" class="b-link" id="b-limpiar">Quitar filtros</button></div>
  </div>
  <div class="barra"><span id="cuenta"></span>
   <label>Ordenar <select id="orden"><option value="cerca">Mis mejores opciones</option><option value="area">Por área</option><option value="fecha">Llamamiento más reciente</option></select></label>
@@ -196,7 +208,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 // Puntos por bolsa: { "Enfermería": "112,5", ... } (texto tal como lo escribe la persona)
 const ptsIni = store.get("pts", null) ?? (store.get("mis", "") ? { [CATS[0][0]]: store.get("mis", "") } : {});
-let S = { cat: store.get("cat", CATS[0][0]), pts: ptsIni, nom: store.get("nom", "nombramientos temporales"),
+let S = { cat: store.get("cat", CATS[0][0]), pts: ptsIni, noms: store.get("noms", ["nombramientos temporales"]),
           areas: store.get("areas", []), ambs: store.get("ambs", []), orden: store.get("orden", "cerca"), filas: [] };
 Object.defineProperty(S, "mis", { get() { return S.pts[S.cat] ?? ""; } });
 
@@ -236,19 +248,36 @@ function chips(el, titulo, items, sel, multi, onTap) {
 }
 const toggle = (arr, v) => v === "*" ? [] : arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
+const enNoms = (f) => !S.noms.length || S.noms.includes(f.nombramiento);
 function pintarFiltros() {
  const act = S.filas.filter((f) => f.actual);
  const noms = [...new Set(act.map((f) => f.nombramiento))].sort((a, b) => Object.keys(NOM).indexOf(a) - Object.keys(NOM).indexOf(b));
- if (noms.length && !noms.includes(S.nom)) S.nom = noms[0];
- chips($("f-nom"), "Contrato", noms.map((n) => [n, NOM[n] || n]), S.nom, false, (v) => { S.nom = v; store.set("nom", v); pintarFiltros(); pintar(); });
- const areas = [...new Set(act.filter((f) => f.nombramiento === S.nom).map((f) => f.area))]
+ S.noms = S.noms.filter((n) => noms.includes(n));
+ chips($("f-nom"), "Contrato", [["*", "Todos"], ...noms.map((n) => [n, NOM[n] || n])], S.noms, true,
+  (v) => { S.noms = toggle(S.noms, v); store.set("noms", S.noms); pintarFiltros(); pintar(); });
+ const areas = [...new Set(act.filter(enNoms).map((f) => f.area))]
   .sort((a, b) => (num(a) ?? 99) - (num(b) ?? 99));
  chips($("f-area"), "Área", [["*", "Todas"], ...areas.map((a) => [a, num(a) ? `${ROM[num(a)]} · ${AREAS[num(a)]}` : a])], S.areas, true,
   (v) => { S.areas = toggle(S.areas, v); store.set("areas", S.areas); pintarFiltros(); pintar(); });
- const ambs = [...new Set(act.filter((f) => f.nombramiento === S.nom).map((f) => f.ambito))].sort();
+ const ambs = [...new Set(act.filter(enNoms).map((f) => f.ambito))].sort();
  chips($("f-amb"), "Ámbito", [["*", "Todos"], ...ambs.map((a) => [a, AMB_CORTO[a] || a])], S.ambs, true,
   (v) => { S.ambs = toggle(S.ambs, v); store.set("ambs", S.ambs); pintarFiltros(); pintar(); });
+ resumenFiltros();
 }
+const listaTxt = (arr, map, todos) => !arr.length ? todos : arr.length <= 2 ? arr.map(map).join(", ") : `${arr.length} seleccionados`;
+const nomsTxt = () => listaTxt(S.noms, (n) => (NOM[n] || n).toLowerCase(), "todos los contratos");
+function resumenFiltros() {
+ const n = (S.noms.length ? 1 : 0) + (S.areas.length ? 1 : 0) + (S.ambs.length ? 1 : 0);
+ $("n-filtros").textContent = n ? String(n) : "";
+ $("resumen-f").textContent = [nomsTxt(), listaTxt(S.areas, (a) => num(a) ? "Área " + ROM[num(a)] : a, "todas las áreas"),
+  listaTxt(S.ambs, (a) => AMB_CORTO[a] || a, "todos los ámbitos")].join(" · ");
+}
+function panel(abrirlo) {
+ $("panel-f").hidden = !abrirlo; $("b-filtros").setAttribute("aria-expanded", abrirlo);
+}
+$("b-filtros").onclick = () => panel($("panel-f").hidden);
+$("b-aplicar").onclick = () => { panel(false); $("cuenta").scrollIntoView({ behavior: "smooth", block: "start" }); };
+$("b-limpiar").onclick = () => { S.noms = []; S.areas = []; S.ambs = []; store.set("noms", []); store.set("areas", []); store.set("ambs", []); pintarFiltros(); pintar(); };
 const num = (area) => { const r = area.replace(/^Área\s+/i, "").trim(); const i = ROM.indexOf(r); return i > 0 ? i : null; };
 
 function pintar() {
@@ -256,7 +285,7 @@ function pintar() {
  const clave = (f) => [f.nombramiento, f.area, f.ambito].join("|");
  const hist = {};
  for (const f of S.filas) (hist[clave(f)] ||= []).push(f);
- let filas = S.filas.filter((f) => f.actual && f.nombramiento === S.nom
+ let filas = S.filas.filter((f) => f.actual && enNoms(f)
    && (!S.areas.length || S.areas.includes(f.area)) && (!S.ambs.length || S.ambs.includes(f.ambito)));
  // Si hay dos convocatorias para el mismo puesto, se queda la de llamamiento más reciente
  const uno = {};
@@ -274,7 +303,7 @@ function pintar() {
   const h = (hist[clave(f)] || []).filter((x) => x !== f && x.fecha_llamamiento && x.fecha_llamamiento < (f.fecha_llamamiento || "")).sort((a, b) => b.fecha_llamamiento.localeCompare(a.fecha_llamamiento))[0];
   const est = f.dif == null ? `<span class="estado neutro">Corte ${fmt(f.puntos)}</span>`
    : f.dif >= 0 ? `<span class="estado dentro">Dentro · +${fmt(f.dif, 2)}</span>` : `<span class="estado fuera">Faltan ${fmt(-f.dif, 2)}</span>`;
-  return `<li class="item"><div><h3>${n ? `Área ${ROM[n]} · ${AREAS[n]}` : esc(f.area)}</h3><div class="sub">${esc(f.ambito)}${f.tipo_llamamiento ? " · " + esc(f.tipo_llamamiento) : ""}</div></div>${est}
+  return `<li class="item"><div><h3>${n ? `Área ${ROM[n]} · ${AREAS[n]}` : esc(f.area)}</h3><div class="sub">${S.noms.length !== 1 ? `<strong>${esc(NOM[f.nombramiento] || f.nombramiento)}</strong> · ` : ""}${esc(f.ambito)}${f.tipo_llamamiento ? " · " + esc(f.tipo_llamamiento) : ""}</div></div>${est}
    <div class="escala${f.dif != null && f.dif >= 0 ? " ok" : ""}" aria-hidden="true">${mis ? `<i style="width:${(Math.min(mis, maxP) / maxP * 100).toFixed(1)}%"></i>` : ""}<u style="left:calc(${(f.puntos / maxP * 100).toFixed(1)}% - 1px)"></u></div>
    <div class="datos"><span>Último llamado: <strong>${fmt(f.puntos)}</strong> pts</span><span>El ${fecha(f.fecha_llamamiento)}${recientes != null && recientes > 60 ? " (hace mucho)" : ""}</span>
    ${h ? `<span>Antes: <strong>${fmt(h.puntos)}</strong> (${fecha(h.fecha_llamamiento)})</span>` : ""}<span>${esc(f.convocatoria || "")}</span></div></li>`;
@@ -285,12 +314,12 @@ function pintar() {
  const act = S.filas.find((f) => f.actualizada)?.actualizada;
  if (!S.filas.length) return;
  if (mis == null) {
-  $("resumen").innerHTML = `<p><strong>${esc(catTxt)}</strong> · ${NOM[S.nom] || S.nom}. Escribe tus puntos arriba para ver en qué puestos ya ha llegado la lista a tu nota.</p>`;
+  $("resumen").innerHTML = `<p><strong>${esc(catTxt)}</strong> · ${esc(nomsTxt())}. Escribe tus puntos arriba para ver en qué puestos ya ha llegado la lista a tu nota.</p>`;
  } else {
   const dentro = filas.filter((f) => f.dif >= 0), fuera = filas.filter((f) => f.dif < 0).sort((a, b) => b.dif - a.dif);
   const mejor = fuera[0];
   $("resumen").innerHTML = `<span class="big">${dentro.length} de ${filas.length}</span>
-   <p>Con <strong>${fmt(mis)}</strong> puntos, la lista ya ha llegado a tu nota en ${dentro.length} ${dentro.length === 1 ? "puesto" : "puestos"} de ${esc(catTxt)} (${(NOM[S.nom] || S.nom).toLowerCase()}).${mejor ? ` El más cercano de los que faltan: Área ${ROM[num(mejor.area)] || mejor.area}, ${esc(AMB_CORTO[mejor.ambito] || mejor.ambito)}, a ${fmt(-mejor.dif, 2)} puntos.` : ""}</p>`;
+   <p>Con <strong>${fmt(mis)}</strong> puntos, la lista ya ha llegado a tu nota en ${dentro.length} ${dentro.length === 1 ? "puesto" : "puestos"} de ${esc(catTxt)} (${esc(nomsTxt())}).${mejor ? ` El más cercano de los que faltan: Área ${ROM[num(mejor.area)] || mejor.area}, ${esc(AMB_CORTO[mejor.ambito] || mejor.ambito)}, a ${fmt(-mejor.dif, 2)} puntos.` : ""}</p>`;
  }
  $("estado").textContent = act ? `Datos del SMS actualizados a ${fecha(act)}.` : "";
 }
