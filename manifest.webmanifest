@@ -1,0 +1,16 @@
+{
+  "name": "Bolsa SMS Murcia · ¿Me toca?",
+  "short_name": "Bolsa SMS",
+  "description": "Compara tus puntos con los últimos llamamientos de la Bolsa de Trabajo del Servicio Murciano de Salud, por área y ámbito.",
+  "lang": "es",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#fbf8f6",
+  "theme_color": "#8f1d2c",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

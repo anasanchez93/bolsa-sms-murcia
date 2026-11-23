@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Bolsa SMS · ¿Me toca?</title>
+<meta name="description" content="Compara tus puntos con los últimos llamamientos de la Bolsa de Trabajo del Servicio Murciano de Salud, por área de salud y ámbito.">
+<meta name="theme-color" content="#8f1d2c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Bolsa SMS">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+/* VOICE: práctica y tranquila, como una ventanilla bien hecha
+   IDEA: el tablón de llamamientos del hospital, pero con tu nota al lado
+   PICTURE: tu puntuación enorme sobre la banda carmesí, y debajo cada puesto con su corte
+   COLOUR/TYPE: carmesí de la Región de Murcia, blanco cálido, oro como acento; Public Sans
+   LAYOUT: banda superior con los mandos, resumen, filtros en fila, lista de puestos */
+:root{color-scheme:light dark;
+ --bg:light-dark(#fbf8f6,#141011);--card:light-dark(#fff,#1f191a);--ink:light-dark(#1d1416,#f3ecea);--muted:light-dark(#6d5e60,#b5a6a7);
+ --line:light-dark(#eadfdc,#3a2f30);--crim:#8f1d2c;--crim2:light-dark(#8f1d2c,#e0606f);--gold:#f5c84c;--ok:light-dark(#1d6b4f,#57c79a);--okbg:light-dark(#e3f3ec,#173226);--nobg:light-dark(#f7e6e8,#3a1d22)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 "Public Sans",system-ui,sans-serif;overflow-x:clip}
+a{color:var(--crim2)}
+.wrap{max-width:1040px;margin:0 auto;padding-inline:max(4vw,16px)}
+header{background:var(--crim);color:#fff;padding:calc(env(safe-area-inset-top) + 22px) 0 26px}
+header h1{font-size:clamp(26px,5vw,40px);line-height:1.05;margin:0 0 6px;font-weight:800;text-wrap:balance}
+header p{margin:0 0 20px;opacity:.85;max-width:60ch}
+.mandos{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1fr);gap:14px;align-items:end}
+label.lab{display:block;font-size:13px;font-weight:600;opacity:.9;margin-bottom:6px}
+.puntos{display:flex;align-items:baseline;gap:10px;background:rgba(255,255,255,.1);border:2px solid rgba(255,255,255,.35);border-radius:14px;padding:6px 16px}
+.puntos:focus-within{border-color:var(--gold)}
+.puntos input{all:unset;width:100%;font-size:clamp(40px,9vw,64px);font-weight:800;letter-spacing:-.02em;color:#fff;line-height:1.1}
+.puntos input::placeholder{color:rgba(255,255,255,.4)}
+.puntos span{font-weight:600;opacity:.8}
+select{width:100%;font:inherit;font-size:16px;padding:12px 14px;border-radius:12px;border:2px solid rgba(255,255,255,.35);background:rgba(255,255,255,.1);color:#fff;min-height:48px}
+select option{color:#1d1416}
+.resumen{background:var(--card);border-bottom:1px solid var(--line)}
+.resumen .wrap{padding-block:18px;display:flex;flex-wrap:wrap;gap:8px 28px;align-items:baseline}
+.big{font-size:28px;font-weight:800;color:var(--crim2)}
+.resumen p{margin:0;max-width:70ch}
+.filtros{padding-block:18px 6px;display:grid;gap:12px}
+.fila{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;scrollbar-width:thin}
+.fila b{flex:none;font-size:13px;color:var(--muted);align-self:center;width:72px}
+.chip{flex:none;font:inherit;font-size:14px;font-weight:600;border:1.5px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:9px 14px;min-height:40px;cursor:pointer}
+.chip[aria-pressed=true]{background:var(--crim2);border-color:var(--crim2);color:light-dark(#fff,#141011)}
+.chip:focus-visible,select:focus-visible,button:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.barra{display:flex;justify-content:space-between;align-items:center;gap:12px;padding-block:12px;color:var(--muted);font-size:14px;flex-wrap:wrap}
+.barra select{background:var(--card);color:var(--ink);border:1.5px solid var(--line);width:auto;min-height:40px;padding:8px 12px}
+ul.lista{list-style:none;margin:0;padding:0 0 24px;display:grid;gap:10px}
+.item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px}
+.item h3{margin:0;font-size:17px;line-height:1.25}
+.item .sub{color:var(--muted);font-size:14px}
+.estado{align-self:start;text-align:right;font-weight:800;font-size:15px;border-radius:10px;padding:6px 10px;white-space:nowrap}
+.dentro{background:var(--okbg);color:var(--ok)}.fuera{background:var(--nobg);color:var(--crim2)}.neutro{background:var(--bg);color:var(--muted)}
+.escala{grid-column:1/-1;position:relative;height:10px;border-radius:99px;background:var(--bg);border:1px solid var(--line);margin-top:6px}
+.escala i{position:absolute;inset:0 auto 0 0;border-radius:99px;background:var(--crim2);opacity:.85}
+.escala.ok i{background:var(--ok)}
+.escala u{position:absolute;top:-5px;bottom:-5px;width:3px;background:var(--ink);border-radius:2px;text-decoration:none}
+.datos{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:4px 18px;font-size:14px;color:var(--muted)}
+.datos strong{color:var(--ink);font-variant-numeric:tabular-nums}
+.vacio{padding:28px;text-align:center;color:var(--muted);background:var(--card);border-radius:14px;border:1px dashed var(--line)}
+.info{border-top:1px solid var(--line);padding-block:28px 40px;color:var(--muted);font-size:15px}
+.info h2{color:var(--ink);font-size:20px;margin:0 0 8px}
+.info details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px;margin:10px 0}
+.info summary{cursor:pointer;font-weight:600;color:var(--ink);min-height:28px}
+.info dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 14px;margin:10px 0 0}.info dt{font-weight:600;color:var(--ink)}.info dd{margin:0}
+#instalar{display:none;font:inherit;font-weight:700;background:var(--gold);color:#1d1416;border:0;border-radius:12px;padding:10px 16px;min-height:44px;cursor:pointer;margin-top:14px}
+.aviso{font-size:13px}
+@media(max-width:600px){.mandos{grid-template-columns:1fr}.item{grid-template-columns:1fr}.estado{text-align:left;justify-self:start}.fila b{width:auto}}
+@media(prefers-reduced-motion:no-preference){.escala i{transition:width .5s ease}}
+</style>
+</head>
+<body>
+<header>
+ <div class="wrap">
+  <h1>¿Me toca en la bolsa del SMS?</h1>
+  <p>Escribe tu puntuación y compárala con la del último llamamiento en cada área de salud y ámbito.</p>
+  <div class="mandos">
+   <div>
+    <label class="lab" for="mis">Tus puntos en la bolsa</label>
+    <div class="puntos"><input id="mis" inputmode="decimal" autocomplete="off" placeholder="0,000" aria-describedby="ayuda-puntos"><span>pts</span></div>
+   </div>
+   <div>
+    <label class="lab" for="cat">Bolsa</label>
+    <select id="cat"></select>
+   </div>
+  </div>
+  <button id="instalar" type="button">Instalar la app</button>
+ </div>
+</header>
+
+<section class="resumen" aria-live="polite"><div class="wrap" id="resumen"><p>Cargando llamamientos…</p></div></section>
+
+<main class="wrap">
+ <div class="filtros">
+  <div class="fila" id="f-nom" role="group" aria-label="Tipo de nombramiento"><b>Contrato</b></div>
+  <div class="fila" id="f-area" role="group" aria-label="Área de salud"><b>Área</b></div>
+  <div class="fila" id="f-amb" role="group" aria-label="Ámbito"><b>Ámbito</b></div>
+ </div>
+ <div class="barra"><span id="cuenta"></span>
+  <label>Ordenar <select id="orden"><option value="cerca">Mis mejores opciones</option><option value="area">Por área</option><option value="fecha">Llamamiento más reciente</option></select></label>
+ </div>
+ <ul class="lista" id="lista"></ul>
+</main>
+
+<section class="info"><div class="wrap">
+ <h2>Cómo leerlo</h2>
+ <p id="ayuda-puntos">El SMS llama por orden de puntuación. La <strong>puntuación del último llamamiento</strong> es la nota de la última persona a la que han llamado en ese área y ámbito. Si tu nota es igual o mayor, la lista ya ha pasado por tu altura: o te han llamado, o estás no disponible, o te tocará en cuanto salga el siguiente contrato. Si es menor, la diferencia es lo que le falta a la lista para llegar a ti.</p>
+ <details><summary>Áreas de salud</summary><dl id="areas"></dl></details>
+ <details><summary>Tipos de contrato</summary>
+  <dl><dt>Temporales</dt><dd>Sustituciones y contratos cortos.</dd><dt>Vacantes</dt><dd>Interinidades en plaza vacante.</dd><dt>Larga duración</dt><dd>Nombramientos largos.</dd><dt>Discapacidad</dt><dd>Turno reservado a personas con discapacidad.</dd></dl>
+  <p>«CARM» indica llamamientos para centros de la Comunidad Autónoma (ámbito Resto Administración Pública).</p></details>
+ <details><summary>De dónde salen los datos</summary>
+  <p>De la página pública de <a href="https://sms.carm.es/sms/bolsa/view/info/elegirBolsaUltimosLlamamientos.xhtml">Últimos llamamientos de la Bolsa de Trabajo del SMS</a>. Se consultan tres veces al día y se guarda un histórico para ver cómo avanza cada lista. Solo se muestra la convocatoria ordinaria.</p>
+  <p class="aviso">Esta app no es oficial ni pertenece al Servicio Murciano de Salud. Tu puntuación no sale de tu móvil. Para cualquier trámite manda lo que diga la web del SMS o <a href="https://www.murciasalud.es/web/recursos-humanos-y-empleo/informacion-general">Murciasalud</a>.</p></details>
+ <p id="estado" class="aviso"></p>
+</div></section>
+
+<script>
+{
+const API = "https://amjwtkrhwhkkgfmvbpsv.supabase.co/rest/v1/rpc/";
+const KEY = "sb_publishable_pDoPNtLY0kdiSXRHPGJE-g_OACpsJl6";
+const CATS = [
+ ["Enfermería","Enfermería"],
+ ["Enfermeros especialistas en enfermería familiar y comunitaria","Enfermería Familiar y Comunitaria"],
+ ["Enfermeros especialistas en pediatría","Enfermería Pediátrica"],
+ ["Enfermeros especialistas en salud mental","Enfermería de Salud Mental"],
+ ["Enfermería del trabajo","Enfermería del Trabajo"],
+ ["Matronas","Matronas"]];
+const AREAS = {1:"Murcia Oeste",2:"Cartagena",3:"Lorca",4:"Noroeste",5:"Altiplano",6:"Vega Media del Segura",7:"Murcia Este",8:"Mar Menor",9:"Vega Alta del Segura"};
+const ROM = ["","I","II","III","IV","V","VI","VII","VIII","IX"];
+const NOM = {"nombramientos temporales":"Temporales","vacantes":"Vacantes","larga duración":"Larga duración","turno de discapacitados":"Discapacidad"};
+const AMB_CORTO = {"Atención Primaria":"Primaria","Atención Especializada":"Especializada (hospital)","Urgencias de primaria":"Urgencias primaria (SUAP)","Resto Administración Pública":"Resto Adm. Pública","Equipos de soporte de atención domiciliaria":"ESAD","Salud Mental":"Salud Mental","Órganos Centrales":"Órganos centrales"};
+
+const $ = (id) => document.getElementById(id);
+const store = { get(k, d) { try { const v = localStorage.getItem("bsms:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
+                set(k, v) { try { localStorage.setItem("bsms:" + k, JSON.stringify(v)); } catch {} } };
+const fmt = (n, d = 3) => n == null || !isFinite(n) ? "–" : n.toLocaleString("es-ES", { minimumFractionDigits: d, maximumFractionDigits: d });
+const fecha = (s) => s ? new Date(s + "T12:00:00").toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" }) : "–";
+const dias = (s) => s ? Math.round((Date.now() - new Date(s + "T12:00:00")) / 864e5) : null;
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+let S = { cat: store.get("cat", CATS[0][0]), mis: store.get("mis", ""), nom: store.get("nom", "nombramientos temporales"),
+          areas: store.get("areas", []), ambs: store.get("ambs", []), orden: store.get("orden", "cerca"), filas: [] };
+
+$("cat").innerHTML = CATS.map(([v, t]) => `<option value="${esc(v)}">${esc(t)}</option>`).join("");
+$("cat").value = S.cat; $("mis").value = S.mis; $("orden").value = S.orden;
+$("areas").innerHTML = Object.entries(AREAS).map(([n, t]) => `<dt>Área ${ROM[n]}</dt><dd>${t}</dd>`).join("");
+
+const misPuntos = () => { const v = parseFloat(String(S.mis).replace(/\./g, "").replace(",", ".")); return isFinite(v) && v > 0 ? v : null; };
+
+async function rpc(fn, body) {
+ const r = await fetch(API + fn, { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: JSON.stringify(body || {}) });
+ if (!r.ok) throw new Error("HTTP " + r.status);
+ return r.json();
+}
+
+async function cargar() {
+ $("resumen").innerHTML = "<p>Cargando llamamientos…</p>";
+ const cacheKey = "datos:" + S.cat;
+ try {
+  const filas = await rpc("bolsa_sms_llamamientos", { p_categoria: S.cat });
+  S.filas = filas; store.set(cacheKey, { at: Date.now(), filas });
+ } catch (e) {
+  const c = store.get(cacheKey, null);
+  S.filas = c ? c.filas : [];
+  if (!c) { $("resumen").innerHTML = "<p>No se han podido cargar los datos. Revisa la conexión e inténtalo de nuevo.</p>"; }
+ }
+ pintarFiltros(); pintar();
+}
+
+function chips(el, titulo, items, sel, multi, onTap) {
+ el.innerHTML = `<b>${titulo}</b>` + items.map(([v, t]) => {
+  const on = multi ? (sel.length === 0 ? v === "*" : sel.includes(v)) : sel === v;
+  return `<button type="button" class="chip" data-v="${esc(v)}" aria-pressed="${on}">${esc(t)}</button>`; }).join("");
+ el.onclick = (e) => { const b = e.target.closest(".chip"); if (b) onTap(b.dataset.v); };
+}
+const toggle = (arr, v) => v === "*" ? [] : arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
+
+function pintarFiltros() {
+ const act = S.filas.filter((f) => f.actual);
+ const noms = [...new Set(act.map((f) => f.nombramiento))].sort((a, b) => Object.keys(NOM).indexOf(a) - Object.keys(NOM).indexOf(b));
+ if (noms.length && !noms.includes(S.nom)) S.nom = noms[0];
+ chips($("f-nom"), "Contrato", noms.map((n) => [n, NOM[n] || n]), S.nom, false, (v) => { S.nom = v; store.set("nom", v); pintarFiltros(); pintar(); });
+ const areas = [...new Set(act.filter((f) => f.nombramiento === S.nom).map((f) => f.area))]
+  .sort((a, b) => (num(a) ?? 99) - (num(b) ?? 99));
+ chips($("f-area"), "Área", [["*", "Todas"], ...areas.map((a) => [a, num(a) ? `${ROM[num(a)]} · ${AREAS[num(a)]}` : a])], S.areas, true,
+  (v) => { S.areas = toggle(S.areas, v); store.set("areas", S.areas); pintarFiltros(); pintar(); });
+ const ambs = [...new Set(act.filter((f) => f.nombramiento === S.nom).map((f) => f.ambito))].sort();
+ chips($("f-amb"), "Ámbito", [["*", "Todos"], ...ambs.map((a) => [a, AMB_CORTO[a] || a])], S.ambs, true,
+  (v) => { S.ambs = toggle(S.ambs, v); store.set("ambs", S.ambs); pintarFiltros(); pintar(); });
+}
+const num = (area) => { const r = area.replace(/^Área\s+/i, "").trim(); const i = ROM.indexOf(r); return i > 0 ? i : null; };
+
+function pintar() {
+ const mis = misPuntos();
+ const clave = (f) => [f.nombramiento, f.area, f.ambito].join("|");
+ const hist = {};
+ for (const f of S.filas) (hist[clave(f)] ||= []).push(f);
+ let filas = S.filas.filter((f) => f.actual && f.nombramiento === S.nom
+   && (!S.areas.length || S.areas.includes(f.area)) && (!S.ambs.length || S.ambs.includes(f.ambito)));
+ // Si hay dos convocatorias para el mismo puesto, se queda la de llamamiento más reciente
+ const uno = {};
+ for (const f of filas) { const k = clave(f); if (!uno[k] || (f.fecha_llamamiento || "") > (uno[k].fecha_llamamiento || "")) uno[k] = f; }
+ filas = Object.values(uno).map((f) => ({ ...f, dif: mis == null ? null : mis - f.puntos }));
+ const ord = { cerca: (a, b) => (a.dif == null ? 0 : b.dif - a.dif) || (num(a.area) ?? 99) - (num(b.area) ?? 99),
+  area: (a, b) => (num(a.area) ?? 99) - (num(b.area) ?? 99) || a.ambito.localeCompare(b.ambito),
+  fecha: (a, b) => (b.fecha_llamamiento || "").localeCompare(a.fecha_llamamiento || "") };
+ filas.sort(ord[S.orden]);
+
+ const maxP = Math.max(mis || 0, ...filas.map((f) => f.puntos), 1);
+ $("cuenta").textContent = `${filas.length} ${filas.length === 1 ? "puesto" : "puestos"}`;
+ $("lista").innerHTML = filas.length ? filas.map((f) => {
+  const n = num(f.area), recientes = dias(f.fecha_llamamiento);
+  const h = (hist[clave(f)] || []).filter((x) => x !== f && x.fecha_llamamiento && x.fecha_llamamiento < (f.fecha_llamamiento || "")).sort((a, b) => b.fecha_llamamiento.localeCompare(a.fecha_llamamiento))[0];
+  const est = f.dif == null ? `<span class="estado neutro">Corte ${fmt(f.puntos)}</span>`
+   : f.dif >= 0 ? `<span class="estado dentro">Dentro · +${fmt(f.dif, 2)}</span>` : `<span class="estado fuera">Faltan ${fmt(-f.dif, 2)}</span>`;
+  return `<li class="item"><div><h3>${n ? `Área ${ROM[n]} · ${AREAS[n]}` : esc(f.area)}</h3><div class="sub">${esc(f.ambito)}${f.tipo_llamamiento ? " · " + esc(f.tipo_llamamiento) : ""}</div></div>${est}
+   <div class="escala${f.dif != null && f.dif >= 0 ? " ok" : ""}" aria-hidden="true">${mis ? `<i style="width:${(Math.min(mis, maxP) / maxP * 100).toFixed(1)}%"></i>` : ""}<u style="left:calc(${(f.puntos / maxP * 100).toFixed(1)}% - 1px)"></u></div>
+   <div class="datos"><span>Último llamado: <strong>${fmt(f.puntos)}</strong> pts</span><span>El ${fecha(f.fecha_llamamiento)}${recientes != null && recientes > 60 ? " (hace mucho)" : ""}</span>
+   ${h ? `<span>Antes: <strong>${fmt(h.puntos)}</strong> (${fecha(h.fecha_llamamiento)})</span>` : ""}<span>${esc(f.convocatoria || "")}</span></div></li>`;
+ }).join("") : `<li class="vacio">No hay llamamientos con estos filtros.</li>`;
+
+ // Resumen
+ const catTxt = CATS.find((c) => c[0] === S.cat)?.[1] || S.cat;
+ const act = S.filas.find((f) => f.actualizada)?.actualizada;
+ if (!S.filas.length) return;
+ if (mis == null) {
+  $("resumen").innerHTML = `<p><strong>${esc(catTxt)}</strong> · ${NOM[S.nom] || S.nom}. Escribe tus puntos arriba para ver en qué puestos ya ha llegado la lista a tu nota.</p>`;
+ } else {
+  const dentro = filas.filter((f) => f.dif >= 0), fuera = filas.filter((f) => f.dif < 0).sort((a, b) => b.dif - a.dif);
+  const mejor = fuera[0];
+  $("resumen").innerHTML = `<span class="big">${dentro.length} de ${filas.length}</span>
+   <p>Con <strong>${fmt(mis)}</strong> puntos, la lista ya ha llegado a tu nota en ${dentro.length} ${dentro.length === 1 ? "puesto" : "puestos"} de ${esc(catTxt)} (${(NOM[S.nom] || S.nom).toLowerCase()}).${mejor ? ` El más cercano de los que faltan: Área ${ROM[num(mejor.area)] || mejor.area}, ${esc(AMB_CORTO[mejor.ambito] || mejor.ambito)}, a ${fmt(-mejor.dif, 2)} puntos.` : ""}</p>`;
+ }
+ $("estado").textContent = act ? `Datos del SMS actualizados a ${fecha(act)}.` : "";
+}
+
+let t;
+$("mis").addEventListener("input", (e) => { S.mis = e.target.value.replace(/[^\d.,]/g, ""); e.target.value = S.mis; store.set("mis", S.mis); clearTimeout(t); t = setTimeout(pintar, 150); });
+$("cat").addEventListener("change", (e) => { S.cat = e.target.value; store.set("cat", S.cat); S.areas = []; S.ambs = []; store.set("areas", []); store.set("ambs", []); cargar(); });
+$("orden").addEventListener("change", (e) => { S.orden = e.target.value; store.set("orden", S.orden); pintar(); });
+
+let aviso;
+window.addEventListener("beforeinstallprompt", (e) => { e.preventDefault(); aviso = e; $("instalar").style.display = "inline-block"; });
+$("instalar").addEventListener("click", async () => { if (!aviso) return; aviso.prompt(); await aviso.userChoice; aviso = null; $("instalar").style.display = "none"; });
+if ("serviceWorker" in navigator && location.protocol === "https:") navigator.serviceWorker.register("sw.js").catch(() => {});
+
+cargar();
+}
+</script>
+</body>
+</html>
