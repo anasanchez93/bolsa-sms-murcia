@@ -279,7 +279,7 @@ async function cargar() {
   if (!c) { $("resumen").innerHTML = "<p>No se han podido cargar los datos. Revisa la conexión e inténtalo de nuevo.</p>"; }
  }
  try {
-  const desde = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+  const d0 = new Date(); d0.setMonth(d0.getMonth() - 2); const desde = d0.toISOString().slice(0, 10);
   const cs = await rpc("bolsa_sms_contratos", { p_categoria: S.cat, p_desde: desde });
   S.contratos = cs.map((c) => ({ ...c, ambitoN: AMB_COD[c.ambito] || c.ambito, areasN: c.areas.map((n) => "Área " + ROM[n]) }));
   store.set("contratos:" + S.cat, S.contratos);
@@ -358,9 +358,13 @@ function sparkline(serie, mis) {
 
 function pintarDia() {
  const mis = misPuntos();
- const fechas = [...new Set(S.contratos.map((c) => c.fecha))].sort().reverse();
- if (!fechas.includes(S.dia)) S.dia = fechas[0] || "";
- chips($("dias"), "Día", fechas.slice(0, 30).map((f) => [f, new Date(f + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })]), S.dia, false,
+ // Del día de hoy hacia atrás, hasta 2 meses
+ const hoy = new Date().toLocaleDateString("sv-SE"), lim = new Date(); lim.setMonth(lim.getMonth() - 2);
+ const limTxt = lim.toLocaleDateString("sv-SE");
+ const conDatos = [...new Set(S.contratos.map((c) => c.fecha))].filter((f) => f >= limTxt && f <= hoy);
+ const fechas = [...new Set([hoy, ...conDatos])].sort().reverse();
+ if (!fechas.includes(S.dia)) S.dia = conDatos.length ? fechas.find((f) => conDatos.includes(f)) : hoy;
+ chips($("dias"), "Día", fechas.map((f) => [f, new Date(f + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })]), S.dia, false,
   (v) => { S.dia = v; pintar(); });
  const pasa = (c) => (!S.tipos.length || S.tipos.includes(c.tipo)) && (!S.areas.length || c.areasN.some((a) => S.areas.includes(a))) && (!S.ambs.length || S.ambs.includes(c.ambitoN));
  const clave = (c) => [c.areas.join(","), c.ambito, c.tipo].join("|");
@@ -378,12 +382,12 @@ function pintarDia() {
   return `<li class="item"><div><h3>${titulo}</h3><div class="sub"><strong>${esc(TIPOS[c.tipo] || c.tipo)}</strong> · ${esc(c.ambitoN)}${c.discapacidad ? " · turno discapacidad" : ""}${c.observaciones ? " · " + esc(c.observaciones) : ""}</div></div>${est}
    ${sparkline(series[clave(c)] || [], mis)}
    <div class="datos"><span>Asignado con <strong>${fmt(c.puntos)}</strong> pts</span><span>${periodo}</span></div></li>`;
- }).join("") : `<li class="vacio">${S.contratos.length ? "No hay contratos ese día con estos filtros." : "Todavía no hay contratos diarios de esta bolsa."}</li>`;
+ }).join("") : `<li class="vacio">${S.dia === hoy && !conDatos.includes(hoy) ? "Todavía no se han publicado los contratos de hoy. Suelen salir a mediodía." : S.contratos.length ? "No hay contratos ese día con estos filtros." : "No hay contratos de esta bolsa en los últimos 2 meses."}</li>`;
  const catTxt = CATS.find((c) => c[0] === S.cat)?.[1] || S.cat;
- if (!S.dia) { $("resumen").innerHTML = `<p>No hay contratos diarios publicados de ${esc(catTxt)} en los últimos meses.</p>`; return; }
+ if (!conDatos.includes(S.dia)) { $("resumen").innerHTML = `<p>${S.dia === hoy ? "Los contratos de hoy aún no están publicados." : "Sin contratos ese día."} Elige otro día de los últimos 2 meses.</p>`; $("estado").textContent = ""; return; }
  const toca = filas.filter((c) => c.dif != null && c.dif >= 0).length;
  $("resumen").innerHTML = `<span class="big">${filas.length}</span><p>${filas.length === 1 ? "contrato asignado" : "contratos asignados"} de ${esc(catTxt)} el ${fecha(S.dia)}, con la menor puntuación de cada uno.${mis != null ? ` Con <strong>${fmt(mis)}</strong> puntos te habría tocado ${toca === 1 ? "uno" : toca}.` : " Escribe tus puntos arriba para compararlos."} La línea verde de cada gráfica es tu nota.</p>`;
- $("estado").textContent = `Contratos diarios: PDF publicados por SATSE Región de Murcia (último, ${fecha(fechas[0])}).`;
+ $("estado").textContent = `Contratos diarios: PDF publicados por SATSE Región de Murcia (último, ${fecha(conDatos.sort().at(-1))}).`;
 }
 
 function pintar() {
