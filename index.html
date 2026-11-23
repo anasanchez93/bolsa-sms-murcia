@@ -98,6 +98,16 @@ dialog h2{margin:0;font-size:22px}
 .b-prim:disabled{opacity:.6}
 .b-link{all:unset;cursor:pointer;color:var(--crim2);text-decoration:underline;font-size:14px;padding:8px 0}
 .cerrar{position:absolute;top:10px;right:12px;font-size:28px;line-height:1;background:none;border:0;color:var(--muted);width:44px;height:44px;cursor:pointer}
+.vistas{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:18px;background:var(--card);border:1px solid var(--line);border-radius:14px;padding:5px}
+.vista{font:inherit;font-weight:700;font-size:15px;border:0;border-radius:10px;padding:10px;min-height:44px;background:none;color:var(--muted);cursor:pointer}
+.vista[aria-selected=true]{background:var(--crim2);color:light-dark(#fff,#141011)}
+.dias{flex-wrap:nowrap !important;overflow-x:auto !important;padding-top:12px}
+.dias[hidden]{display:none}.dias b{width:auto !important;flex:none}
+.spark{grid-column:1/-1;display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted)}
+.spark svg{flex:1;height:34px;min-width:0;overflow:visible}
+.spark polyline{fill:none;stroke:var(--crim2);stroke-width:2;vector-effect:non-scaling-stroke}
+.spark line{stroke:var(--ok);stroke-width:1.5;stroke-dasharray:4 3;vector-effect:non-scaling-stroke}
+.spark circle{fill:var(--crim2)}
 @media(max-width:600px){.mandos{grid-template-columns:1fr}.item{grid-template-columns:1fr}.estado{text-align:left;justify-self:start}.fila b{width:auto}}
 @media(prefers-reduced-motion:no-preference){.escala i{transition:width .5s ease}}
 </style>
@@ -152,6 +162,10 @@ dialog h2{margin:0;font-size:22px}
 <section class="resumen" aria-live="polite"><div class="wrap" id="resumen"><p>Cargando llamamientos…</p></div></section>
 
 <main class="wrap">
+ <div class="vistas" role="tablist" aria-label="Vista">
+  <button type="button" role="tab" class="vista" data-vista="posicion">Mi posición</button>
+  <button type="button" role="tab" class="vista" data-vista="dia">Contratos del día</button>
+ </div>
  <div class="barra-f">
   <button type="button" id="b-filtros" class="b-filtros" aria-expanded="false" aria-controls="panel-f">Filtros<span id="n-filtros"></span></button>
   <div id="resumen-f" class="resumen-f"></div>
@@ -162,6 +176,7 @@ dialog h2{margin:0;font-size:22px}
   <div class="fila" id="f-amb" role="group" aria-label="Ámbito"><b>Ámbito</b></div>
   <div class="acciones"><button type="button" class="b-prim" id="b-aplicar">Ver resultados</button><button type="button" class="b-link" id="b-limpiar">Quitar filtros</button></div>
  </div>
+ <div class="fila dias" id="dias" role="group" aria-label="Día" hidden></div>
  <div class="barra"><span id="cuenta"></span>
   <label>Ordenar <select id="orden"><option value="cerca">Mis mejores opciones</option><option value="area">Por área</option><option value="fecha">Llamamiento más reciente</option></select></label>
  </div>
@@ -177,6 +192,7 @@ dialog h2{margin:0;font-size:22px}
   <p>«CARM» indica llamamientos para centros de la Comunidad Autónoma (ámbito Resto Administración Pública).</p></details>
  <details><summary>De dónde salen los datos</summary>
   <p>De la página pública de <a href="https://sms.carm.es/sms/bolsa/view/info/elegirBolsaUltimosLlamamientos.xhtml">Últimos llamamientos de la Bolsa de Trabajo del SMS</a>. Se consultan tres veces al día y se guarda un histórico para ver cómo avanza cada lista. Solo se muestra la convocatoria ordinaria.</p>
+  <p>Los <strong>contratos del día</strong> salen de los PDF «Nombramientos SMS» que <a href="https://murcia.satse.es/">publica a diario SATSE Región de Murcia</a>: para cada área, ámbito y tipo de contrato, la puntuación más baja con la que se asignó ese día.</p>
   <p class="aviso">Esta app no es oficial ni pertenece al Servicio Murciano de Salud. Tu puntuación no sale de tu móvil. Para cualquier trámite manda lo que diga la web del SMS o <a href="https://www.murciasalud.es/web/recursos-humanos-y-empleo/informacion-general">Murciasalud</a>.</p></details>
  <p id="estado" class="aviso"></p>
 </div></section>
@@ -198,6 +214,9 @@ const ROM = ["","I","II","III","IV","V","VI","VII","VIII","IX"];
 const NOM = {"nombramientos temporales":"Temporales","vacantes":"Vacantes","larga duración":"Larga duración","turno de discapacitados":"Discapacidad"};
 const AMB_CORTO = {"Atención Primaria":"Primaria","Atención Especializada":"Especializada (hospital)","Urgencias de primaria":"Urgencias primaria (SUAP)","Resto Administración Pública":"Resto Adm. Pública","Equipos de soporte de atención domiciliaria":"ESAD","Salud Mental":"Salud Mental","Órganos Centrales":"Órganos centrales"};
 
+const TIPOS = {STM:"Sustitución media duración",STC:"Sustitución corta duración",EVM:"Eventual media duración",EVC:"Eventual corta duración",
+ RFC:"Refuerzo corta duración",RFM:"Refuerzo media duración",CTP:"Contrato a tiempo parcial",VAC:"Vacante",CLD:"Contrato larga duración",ONM:"Nombramiento temporal (promoción interna)"};
+const AMB_COD = {AE:"Atención Especializada",AP:"Atención Primaria",SUAP:"Urgencias de primaria",RA:"Resto Administración Pública"};
 const $ = (id) => document.getElementById(id);
 const store = { get(k, d) { try { const v = localStorage.getItem("bsms:" + k); return v === null ? d : JSON.parse(v); } catch { return d; } },
                 set(k, v) { try { localStorage.setItem("bsms:" + k, JSON.stringify(v)); } catch {} } };
@@ -208,7 +227,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 
 // Puntos por bolsa: { "Enfermería": "112,5", ... } (texto tal como lo escribe la persona)
 const ptsIni = store.get("pts", null) ?? (store.get("mis", "") ? { [CATS[0][0]]: store.get("mis", "") } : {});
-let S = { cat: store.get("cat", CATS[0][0]), pts: ptsIni, noms: store.get("noms", ["nombramientos temporales"]),
+let S = { cat: store.get("cat", CATS[0][0]), pts: ptsIni, noms: store.get("noms", ["nombramientos temporales"]), tipos: store.get("tipos", []), vista: store.get("vista", "posicion"), dia: "", contratos: [],
           areas: store.get("areas", []), ambs: store.get("ambs", []), orden: store.get("orden", "cerca"), filas: [] };
 Object.defineProperty(S, "mis", { get() { return S.pts[S.cat] ?? ""; } });
 
@@ -237,6 +256,12 @@ async function cargar() {
   S.filas = c ? c.filas : [];
   if (!c) { $("resumen").innerHTML = "<p>No se han podido cargar los datos. Revisa la conexión e inténtalo de nuevo.</p>"; }
  }
+ try {
+  const desde = new Date(Date.now() - 120 * 864e5).toISOString().slice(0, 10);
+  const cs = await rpc("bolsa_sms_contratos", { p_categoria: S.cat, p_desde: desde });
+  S.contratos = cs.map((c) => ({ ...c, ambitoN: AMB_COD[c.ambito] || c.ambito, areasN: c.areas.map((n) => "Área " + ROM[n]) }));
+  store.set("contratos:" + S.cat, S.contratos);
+ } catch { S.contratos = store.get("contratos:" + S.cat, []); }
  pintarFiltros(); pintar();
 }
 
@@ -249,7 +274,23 @@ function chips(el, titulo, items, sel, multi, onTap) {
 const toggle = (arr, v) => v === "*" ? [] : arr.includes(v) ? arr.filter((x) => x !== v) : [...arr, v];
 
 const enNoms = (f) => !S.noms.length || S.noms.includes(f.nombramiento);
+function pintarFiltrosDia() {
+ const tipos = [...new Set(S.contratos.map((c) => c.tipo))].sort();
+ S.tipos = S.tipos.filter((t) => tipos.includes(t));
+ chips($("f-nom"), "Contrato", [["*", "Todos"], ...tipos.map((t) => [t, TIPOS[t] ? `${t} · ${TIPOS[t]}` : t])], S.tipos, true,
+  (v) => { S.tipos = toggle(S.tipos, v); store.set("tipos", S.tipos); pintarFiltros(); pintar(); });
+ const areas = [...new Set(S.contratos.flatMap((c) => c.areasN))].sort((a, b) => num(a) - num(b));
+ chips($("f-area"), "Área", [["*", "Todas"], ...areas.map((a) => [a, `${ROM[num(a)]} · ${AREAS[num(a)] || ""}`])], S.areas, true,
+  (v) => { S.areas = toggle(S.areas, v); store.set("areas", S.areas); pintarFiltros(); pintar(); });
+ const ambs = [...new Set(S.contratos.map((c) => c.ambitoN))].sort();
+ chips($("f-amb"), "Ámbito", [["*", "Todos"], ...ambs.map((a) => [a, AMB_CORTO[a] || a])], S.ambs, true,
+  (v) => { S.ambs = toggle(S.ambs, v); store.set("ambs", S.ambs); pintarFiltros(); pintar(); });
+ resumenFiltros();
+}
 function pintarFiltros() {
+ for (const b of document.querySelectorAll(".vista")) b.setAttribute("aria-selected", b.dataset.vista === S.vista);
+ $("dias").hidden = S.vista !== "dia";
+ if (S.vista === "dia") return pintarFiltrosDia();
  const act = S.filas.filter((f) => f.actual);
  const noms = [...new Set(act.map((f) => f.nombramiento))].sort((a, b) => Object.keys(NOM).indexOf(a) - Object.keys(NOM).indexOf(b));
  S.noms = S.noms.filter((n) => noms.includes(n));
@@ -265,9 +306,9 @@ function pintarFiltros() {
  resumenFiltros();
 }
 const listaTxt = (arr, map, todos) => !arr.length ? todos : arr.length <= 2 ? arr.map(map).join(", ") : `${arr.length} seleccionados`;
-const nomsTxt = () => listaTxt(S.noms, (n) => (NOM[n] || n).toLowerCase(), "todos los contratos");
+const nomsTxt = () => S.vista === "dia" ? listaTxt(S.tipos, (t) => t, "todos los contratos") : listaTxt(S.noms, (n) => (NOM[n] || n).toLowerCase(), "todos los contratos");
 function resumenFiltros() {
- const n = (S.noms.length ? 1 : 0) + (S.areas.length ? 1 : 0) + (S.ambs.length ? 1 : 0);
+ const n = ((S.vista === "dia" ? S.tipos : S.noms).length ? 1 : 0) + (S.areas.length ? 1 : 0) + (S.ambs.length ? 1 : 0);
  $("n-filtros").textContent = n ? String(n) : "";
  $("resumen-f").textContent = [nomsTxt(), listaTxt(S.areas, (a) => num(a) ? "Área " + ROM[num(a)] : a, "todas las áreas"),
   listaTxt(S.ambs, (a) => AMB_CORTO[a] || a, "todos los ámbitos")].join(" · ");
@@ -277,10 +318,54 @@ function panel(abrirlo) {
 }
 $("b-filtros").onclick = () => panel($("panel-f").hidden);
 $("b-aplicar").onclick = () => { panel(false); $("cuenta").scrollIntoView({ behavior: "smooth", block: "start" }); };
-$("b-limpiar").onclick = () => { S.noms = []; S.areas = []; S.ambs = []; store.set("noms", []); store.set("areas", []); store.set("ambs", []); pintarFiltros(); pintar(); };
+$("b-limpiar").onclick = () => { S.noms = []; S.tipos = []; store.set("tipos", []); S.areas = []; S.ambs = []; store.set("noms", []); store.set("areas", []); store.set("ambs", []); pintarFiltros(); pintar(); };
+for (const b of document.querySelectorAll(".vista")) b.onclick = () => { S.vista = b.dataset.vista; store.set("vista", S.vista); pintarFiltros(); pintar(); };
 const num = (area) => { const r = area.replace(/^Área\s+/i, "").trim(); const i = ROM.indexOf(r); return i > 0 ? i : null; };
 
+function sparkline(serie, mis) {
+ if (serie.length < 2) return "";
+ const ps = serie.map((c) => +c.puntos), lo = Math.min(...ps, mis ?? Infinity), hi = Math.max(...ps, mis ?? -Infinity), r = hi - lo || 1;
+ const t0 = new Date(serie[0].fecha).getTime(), t1 = new Date(serie.at(-1).fecha).getTime(), tr = t1 - t0 || 1;
+ const pt = (c) => [((new Date(c.fecha).getTime() - t0) / tr * 100).toFixed(1), (30 - (c.puntos - lo) / r * 28 - 1).toFixed(1)];
+ const ult = pt(serie.at(-1));
+ const yMis = mis != null ? (30 - (mis - lo) / r * 28 - 1).toFixed(1) : null;
+ return `<div class="spark"><svg viewBox="0 0 100 30" preserveAspectRatio="none" role="img" aria-label="Evolución de la puntuación asignada">
+  ${yMis != null ? `<line x1="0" x2="100" y1="${yMis}" y2="${yMis}"/>` : ""}<polyline points="${serie.map((c) => pt(c).join(",")).join(" ")}"/></svg>
+  <span>${serie.length} contratos · mín ${fmt(Math.min(...ps), 1)} · máx ${fmt(Math.max(...ps), 1)}</span></div>`;
+}
+
+function pintarDia() {
+ const mis = misPuntos();
+ const fechas = [...new Set(S.contratos.map((c) => c.fecha))].sort().reverse();
+ if (!fechas.includes(S.dia)) S.dia = fechas[0] || "";
+ chips($("dias"), "Día", fechas.slice(0, 30).map((f) => [f, new Date(f + "T12:00:00").toLocaleDateString("es-ES", { weekday: "short", day: "numeric", month: "short" })]), S.dia, false,
+  (v) => { S.dia = v; pintar(); });
+ const pasa = (c) => (!S.tipos.length || S.tipos.includes(c.tipo)) && (!S.areas.length || c.areasN.some((a) => S.areas.includes(a))) && (!S.ambs.length || S.ambs.includes(c.ambitoN));
+ const clave = (c) => [c.areas.join(","), c.ambito, c.tipo].join("|");
+ const series = {};
+ for (const c of [...S.contratos].sort((a, b) => a.fecha.localeCompare(b.fecha))) (series[clave(c)] ||= []).push(c);
+ let filas = S.contratos.filter((c) => c.fecha === S.dia && pasa(c)).map((c) => ({ ...c, dif: mis == null ? null : mis - c.puntos }));
+ const ord = { cerca: (a, b) => (a.dif == null ? b.puntos - a.puntos : b.dif - a.dif), area: (a, b) => a.areas[0] - b.areas[0] || a.ambito.localeCompare(b.ambito), fecha: (a, b) => b.puntos - a.puntos };
+ filas.sort(ord[S.orden]);
+ $("cuenta").textContent = `${filas.length} ${filas.length === 1 ? "contrato" : "contratos"}`;
+ $("lista").innerHTML = filas.length ? filas.map((c) => {
+  const titulo = c.areas.length > 1 ? `Áreas ${c.areas.map((n) => ROM[n]).join(", ")}` : `Área ${ROM[c.areas[0]]} · ${AREAS[c.areas[0]] || ""}`;
+  const est = c.dif == null ? `<span class="estado neutro">${fmt(c.puntos)} pts</span>`
+   : c.dif >= 0 ? `<span class="estado dentro">Te habría tocado</span>` : `<span class="estado fuera">Faltan ${fmt(-c.dif, 2)}</span>`;
+  const periodo = c.fecha_fin ? `Del ${fecha(c.fecha_inicio)} al ${fecha(c.fecha_fin)}` : `Desde el ${fecha(c.fecha_inicio)}`;
+  return `<li class="item"><div><h3>${titulo}</h3><div class="sub"><strong>${esc(TIPOS[c.tipo] || c.tipo)}</strong> · ${esc(c.ambitoN)}${c.discapacidad ? " · turno discapacidad" : ""}${c.observaciones ? " · " + esc(c.observaciones) : ""}</div></div>${est}
+   ${sparkline(series[clave(c)] || [], mis)}
+   <div class="datos"><span>Asignado con <strong>${fmt(c.puntos)}</strong> pts</span><span>${periodo}</span></div></li>`;
+ }).join("") : `<li class="vacio">${S.contratos.length ? "No hay contratos ese día con estos filtros." : "Todavía no hay contratos diarios de esta bolsa."}</li>`;
+ const catTxt = CATS.find((c) => c[0] === S.cat)?.[1] || S.cat;
+ if (!S.dia) { $("resumen").innerHTML = `<p>No hay contratos diarios publicados de ${esc(catTxt)} en los últimos meses.</p>`; return; }
+ const toca = filas.filter((c) => c.dif != null && c.dif >= 0).length;
+ $("resumen").innerHTML = `<span class="big">${filas.length}</span><p>${filas.length === 1 ? "contrato asignado" : "contratos asignados"} de ${esc(catTxt)} el ${fecha(S.dia)}, con la menor puntuación de cada uno.${mis != null ? ` Con <strong>${fmt(mis)}</strong> puntos te habría tocado ${toca === 1 ? "uno" : toca}.` : " Escribe tus puntos arriba para compararlos."} La línea verde de cada gráfica es tu nota.</p>`;
+ $("estado").textContent = `Contratos diarios: PDF publicados por SATSE Región de Murcia (último, ${fecha(fechas[0])}).`;
+}
+
 function pintar() {
+ if (S.vista === "dia") return pintarDia();
  const mis = misPuntos();
  const clave = (f) => [f.nombramiento, f.area, f.ambito].join("|");
  const hist = {};
